@@ -29,6 +29,7 @@ static int print_usage(const char *app) {
   fprintf(stderr, "  -r<n>  run <n> repetitions and report\n");
   fprintf(stderr, "  -pq    reinterpret input pixels as PQ and add a cICP "
                   "chunk; can be used to make HDR PNGs\n");
+  fprintf(stderr, "  -g     use grayscale color type\n");
   return 1;
 }
 
@@ -39,6 +40,7 @@ int main(int argc, char **argv) {
 
   int comp_level = FPNGE_COMPRESS_LEVEL_DEFAULT;
   size_t num_reps = 0;
+  bool grayscale = false;
   int cicp_colorspace = FPNGE_CICP_NONE;
 
   int arg_p = 1;
@@ -52,7 +54,10 @@ int main(int argc, char **argv) {
       num_reps = atoi(argv[arg_p] + 2);
     } else if (opt == 'p' && argv[arg_p][2] == 'q') {
       cicp_colorspace = FPNGE_CICP_PQ;
-    } else {
+    } else if (opt == 'g') {
+      grayscale = true;
+    }
+    else {
       return print_usage(argv[0]);
     }
   }
@@ -111,10 +116,14 @@ int main(int argc, char **argv) {
 
   unsigned char *png;
 
-  // RGB(A) only for now.
+  LodePNGColorType color_type = has_alpha ? LodePNGColorType::LCT_RGBA : LodePNGColorType::LCT_RGB;
+  if(grayscale) {
+    color_type = LodePNGColorType::LCT_GREY;
+    num_c = 1;
+  }
   error = lodepng_decode_memory(
       &png, &width, &height, in_data.data(), in_data.size(),
-      has_alpha ? LodePNGColorType::LCT_RGBA : LodePNGColorType::LCT_RGB,
+      color_type,
       is_hbd ? 16 : 8);
 
   if (error) {
